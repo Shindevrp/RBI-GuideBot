@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+PyMuPDF
+langchain
+matplotlib
+openai
+pinecone-client
+sqlalchemy
+requests
+beautifulsoup4
