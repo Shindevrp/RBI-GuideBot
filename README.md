@@ -1,29 +1,72 @@
 # RBI GuideBot
 
-A Retrieval-Augmented Generation (RAG) chatbot for NBFC professionals to query RBI guidelines and circulars. Features document ingestion, semantic search, chart generation, feedback loop, and audit mode.
+An autonomous, agentic email-based assistant for NBFC professionals. It automatically ingests, classifies, and responds to queries about RBI guidelines and internal lending processes. It also includes a traditional web-based RAG chatbot interface.
 
 ## Project Structure
-- `backend/`: FastAPI server, RAG pipeline, document ingestion, chart generation, models, db
-- `frontend/`: React.js UI for chat and feedback
-- `data/`: RBI circulars, PDFs, notifications
+- `backend/`: Contains the FastAPI server for the web chat and the complete agentic email workflow.
+  - `agents/`: Houses the Classifier, Coordinator, and Retrieval agents.
+  - `core/`: Core logic for orchestration, configuration, and the main agent service runner.
+  - `db/`: Database models, session management, and CRUD operations for logging.
+  - `services/`: Connectors for external services like Email (IMAP/SMTP).
+  - `api/`: The FastAPI application for the web chat interface.
+- `frontend/`: React.js UI for the web chat and feedback.
+- `data/`: Source documents like RBI circulars, PDFs, etc.
 
 ## Setup Instructions
-1. Install Python 3.10+, Node.js, and Docker
-2. Backend: `cd backend && pip install -r requirements.txt`
-3. Frontend: `cd frontend && npm install`
-4. Run backend: `uvicorn api.main:app --reload`
-5. Run frontend: `npm start`
+1. Install Python 3.10+ and Node.js.
+2. Create a `.env` file in the `backend` directory. Populate it with your credentials. See `backend/core/config.py` for all required variables (OpenAI, Pinecone, IMAP, SMTP).
+3. **Backend**: `cd backend && pip install -r requirements.txt`
+4. **Frontend**: `cd frontend && npm install`
+5. **Run Agentic Service**: `python -m backend.run_agent_service`
+6. **Run Web Chat Backend**: `uvicorn backend.api.main:app --reload`
+7. **Run Web Chat Frontend**: `cd frontend && npm start`
 
 ## Features
-- Ingest RBI circulars (PDFs, URLs)
-- Chunk, embed, and store in Pinecone
-- RAG flow for contextual answers
-- Chart generation for numeric queries
-- Feedback loop and audit mode
-- Search history stored in SQL database
+- **Agentic Email Workflow**:
+  - **Email Ingestion Agent**: Automatically reads unread emails from a specified inbox (e.g., `compliance@nbfcbot.com`).
+  - **Email Classifier Agent**: Uses an LLM to classify email intent (RBI Regulation, NBFC Lending, Combined, or Other).
+  - **Coordinator & Retrieval Agents**: Routes the query to the correct RAG pipeline, retrieving context from separate vector databases (one for RBI rules, one for internal lending processes).
+  - **Response Generation Agent**: Generates a contextual, natural-language answer with sources.
+  - **Email Reply Agent**: Automatically sends the formatted response back to the customer.
+- **Database Logging**: Every email interaction is logged in a database for auditing and review.
+- **Web Chat Interface**: A traditional RAG chatbot interface is also available for direct queries.
+- **Document Ingestion**: Scripts to ingest, chunk, embed, and store documents in Pinecone vector stores.
 
 ## Technical Architecture
 
+### Architecture Add-on (Agentic Layer)
+```plaintext
+               ┌────────────┐
+               │   Email    │
+               │  Inbox     │
+               └────┬───────┘
+                    ▼
+           ┌──────────────────┐
+           │ Email Ingestion  │
+           └────┬─────────────┘
+                ▼
+     ┌─────────────────────────────┐
+     │ Email Classifier Agent      │
+     │ (RBI / Lending / Other?)    │
+     └────┬─────────────┬──────────┘
+          ▼             ▼
+   ┌────────────┐ ┌──────────────┐
+   │ Regulation │ │   Lending    │
+   │   Agent    │ │    Agent     │
+   │ (RBI DB)   │ │ (NBFC DB)    │
+   └────┬───────┘ └─────┬────────┘
+        ▼               ▼
+     ┌─────────────────────┐
+     │ Coordinator Agent   │
+     │ (Merge, Format)     │
+     └────┬────────────────┘
+          ▼
+ ┌────────────────────┐
+ │ Email Reply Agent  │
+ └────────────────────┘
+```
+
+### Web Chatbot Architecture
 ```
         ┌──────────────┐
         │   User       │
@@ -58,6 +101,7 @@ A Retrieval-Augmented Generation (RAG) chatbot for NBFC professionals to query R
 
 ## Sequence Diagram
 
+### Web Chatbot Flow
 ```
 User → Frontend: Enter query
 Frontend → Backend: Send query
@@ -77,5 +121,3 @@ Frontend → User: Display results
 5. Chart Generator Integration
 6. Feedback Loop + Logging
 7. Dockerization + Deployment
-
-
